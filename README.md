@@ -35,8 +35,8 @@ This Dockerfile sets up an optimized environment to run **Apache Airflow** versi
 To get started, clone this repository to your local machine:
 
 ```bash
-git clone https://github.com/your-username/your-repository.git
-cd your-repository
+git clone https://github.com/bkoscar/apache-airflow.git
+cd apache-airflow
 ```
 ---
 ### 2️⃣ **Create a `.env` File**

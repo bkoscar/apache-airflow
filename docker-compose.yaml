@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-airflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airflow}
+      POSTGRES_DB: ${POSTGRES_DB:-airflow}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - airflow_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DOCKER_CONTEXT_FILES: ./docker-context-files
+        AIRFLOW_VERSION: 2.10.4
+    container_name: airflow_main
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./docker-context-files:/docker-context-files
+    environment:
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: "postgresql+psycopg2://airflow:${POSTGRES_PASSWORD:-airflow}@postgres:5432/${POSTGRES_DB:-airflow}"
+      AIRFLOW__CORE__FERNET_KEY: "${FERNET_KEY}"
+      AIRFLOW_USERNAME: "${AIRFLOW_USERNAME:-admin}"
+      AIRFLOW_PASSWORD: "${AIRFLOW_PASSWORD:-admin}"
+      AIRFLOW_FIRSTNAME: "${AIRFLOW_FIRSTNAME:-Admin}"
+      AIRFLOW_LASTNAME: "${AIRFLOW_LASTNAME:-User}"
+      AIRFLOW_EMAIL: "${AIRFLOW_EMAIL:-admin@example.com}"
+    networks:
+      - airflow_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+
+networks:
+  airflow_network:
+    driver: bridge
